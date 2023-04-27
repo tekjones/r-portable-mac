@@ -8,7 +8,7 @@ This is simply a version I updated to use R 4.2.3 instead of 3.X.X.
 
 ### How do I get set up? ###
 
-1. Clone into any directory and run R using r-portable-mac/bin/R
+1. Download desired release, unzip, then run R using r-portable-mac/bin/R
 2. Install any packages you want (will install to r-portable-mac/library)
 
 #### Changing Version of R ####
