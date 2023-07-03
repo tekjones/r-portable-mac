@@ -1,72 +1,53 @@
 #!/bin/sh
 # Shell wrapper for R executable.
 
-#R_HOME_DIR=/Library/Frameworks/R.framework/Resources
-path=$(pwd)
+echo "----------- Running R portable -----------"
+
+# Set path equal to R binary directory (so we can define R_HOME_DIR and R_HOME)
+SOURCE=${BASH_SOURCE[0]}
+while [ -L "$SOURCE" ]; do # resolve $SOURCE until the file is no longer a symlink
+  DIR=$( cd -P "$( dirname "$SOURCE" )" >/dev/null 2>&1 && pwd )
+  SOURCE=$(readlink "$SOURCE")
+  [[ $SOURCE != /* ]] && SOURCE=$DIR/$SOURCE # if $SOURCE was a relative symlink, we need to resolve it relative to the path where the symlink file was located
+done
+path=$( cd -P "$( dirname "$SOURCE" )" >/dev/null 2>&1 && pwd )
+
 last_dir="${path##*/}"  # sets last_dir to 'to' (equivalent of basename)
-echo ${path}
 
 
 if [ "${last_dir}" = "bin" ]; then 
-  R_HOME_DIR=$(dirname $(pwd))
+  R_HOME_DIR=$(dirname $path)
 else
   R_HOME_DIR=${path}
 fi
 
-if [ "${NODE_R_HOME}" != "" ]; then
-  R_HOME_DIR=${NODE_R_HOME}
-fi
+echo "R_HOME_DIR: ${R_HOME_DIR}"
+export R_HOME_DIR
 
-echo "*** R_HOME_DIR ***"
-echo ${R_HOME_DIR}
-
-if test "${R_HOME_DIR}" = "/Library/Frameworks/lib/R"; then
-   case "darwin15.6.0" in
-   linux*)
-     run_arch=`uname -m`
-     case "$run_arch" in
-        x86_64|mips64|ppc64|powerpc64|sparc64|s390x)
-          libnn=lib64
-          libnn_fallback=lib
-        ;;
-        *)
-          libnn=lib
-          libnn_fallback=lib64
-        ;;
-     esac
-     if [ -x "/Library/Frameworks/${libnn}/R/bin/exec/R" ]; then
-        R_HOME_DIR="/Library/Frameworks/${libnn}/R"
-     elif [ -x "/Library/Frameworks/${libnn_fallback}/R/bin/exec/R" ]; then
-        R_HOME_DIR="/Library/Frameworks/${libnn_fallback}/R"
-     ## else -- leave alone (might be a sub-arch)
-     fi
-     ;;
-  esac
-fi
-
-if test -n "${R_HOME}" && \
-   test "${R_HOME}" != "${R_HOME_DIR}"; then
-  echo "WARNING: ignoring environment value of R_HOME"
-fi
 R_HOME="${R_HOME_DIR}"
 export R_HOME
-#R_SHARE_DIR=/Library/Frameworks/R.framework/Resources/share
-export R_SHARE_DIR
-#R_INCLUDE_DIR=/Library/Frameworks/R.framework/Resources/include
+echo "R_HOME: ${R_HOME}"
+
+export R_SHARE_DIR=$R_HOME"/share"
+echo "R_SHARE_DIR: ${R_SHARE_DIR}"
+
+
 
 export R_LIBS_USER=$R_HOME_DIR"/library"
-echo "R_LIBS_USER: "$R_LIBS_USER
+echo "R_LIBS_USER: ${R_LIBS_USER}"
 
-export R_INCLUDE_DIR
-#R_DOC_DIR=/Library/Frameworks/R.framework/Resources/doc
+export R_INCLUDE_DIR=${R_HOME_DIR}/include
+echo "R_INCLUDE_DIR: ${R_INCLUDE_DIR}"
+
 R_DOC_DIR=${R_HOME_DIR}/doc
 export R_DOC_DIR
-
+echo "R_DOC_DIR: ${R_DOC_DIR}"
 # Since this script can be called recursively, we allow R_ARCH to
 # be overridden from the environment.
 # This script is shared by parallel installs, so nothing in it should
 # depend on the sub-architecture except the default here.
 : ${R_ARCH=}
+
 
 usage="
 Usage: R [options] [< infile] [> outfile]
@@ -280,41 +261,7 @@ else
   error "R_HOME ('${R_HOME}') not found"
 fi
 
-## Startup
-if test -z "${debugger}"; then
-  echo "Running: ${R_binary} --vanilla ${args} ${@}"
-  exec "${R_binary}" "--vanilla" ${args} "${@}"
-else
-  ## Ideally, we would like the debugger to start R with additional
-  ## ('inferior') arguments, but not all debuggers can do this.  We know
-  ## about valgrind and some versions of GDB , and deal with these.
-  ## Otherwise, to be on the safe side, we disregard non-debugger
-  ## command line args.
-  args_ok=no
-  case "`${debugger} --version 2>/dev/null`" in
-    "GNU gdb"*)
-      if ${debugger} --help 2>/dev/null | \
-          grep ' *--args' >/dev/null; then
-	args_ok=yes
-	debugger_args="${debugger_args} --args"
-      fi
-      ;;
-    valgrind*)
-      args_ok=yes
-      ;;
-  esac
-  if test -n "${args}${*}" && test "${args_ok}" = no; then
-    args=`expr "${args} ${*}" : " *\(.*\)"`
-    echo "*** Further command line arguments ('${args}') disregarded"
-    echo "*** (maybe use 'run ${args}' from *inside* ${debugger})"
-    echo ""
-    exec ${debugger} ${debugger_args} "${R_binary}"
-  else
-    exec ${debugger} ${debugger_args} "${R_binary}" ${args} "${@}"
-  fi
-fi
 
-### Local Variables: ***
-### mode: sh ***
-### sh-indentation: 2 ***
-### End: ***
+echo "\n\nRunning: ${R_binary} --vanilla ${args} ${@}"
+echo "------------------------------------------"
+exec "${R_binary}" "--vanilla" ${args} "${@}"
