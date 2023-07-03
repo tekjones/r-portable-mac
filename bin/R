@@ -282,8 +282,8 @@ fi
 
 ## Startup
 if test -z "${debugger}"; then
-  echo "Running: ${R_binary} ${args} ${@} --vanilla"
-  exec "${R_binary}" ${args} "${@}" "--vanilla"
+  echo "Running: ${R_binary} --vanilla ${args} ${@}"
+  exec "${R_binary}" "--vanilla" ${args} "${@}"
 else
   ## Ideally, we would like the debugger to start R with additional
   ## ('inferior') arguments, but not all debuggers can do this.  We know
